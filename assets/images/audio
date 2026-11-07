@@ -1,0 +1,9 @@
+Conori-IA-inicial/
+│
+├── assets/
+│   └── audio/
+│       └── Conori_AI_apresentacao_natural.wav
+│
+├── src/
+├── tests/
+└── README.md
