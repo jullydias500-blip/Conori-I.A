@@ -1,0 +1,2 @@
+# A base 0.1 usa apenas a biblioteca padrão do Python.
+# Dependências opcionais para etapas futuras serão adicionadas após escolha e teste.
