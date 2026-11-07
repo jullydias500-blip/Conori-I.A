@@ -23,21 +23,52 @@ class OllamaAIProvider(AIProvider):
         self.model = model
         self.host = host.rstrip("/")
 
+    PRESENTATION = (
+        "Olá! Seja bem-vindo(a)! Eu sou a Conori I.A., "
+        "uma inteligência artificial inspirada na força, "
+        "na sabedoria e na riqueza da floresta amazônica.\n\n"
+
+        "Nasci da união entre tecnologia, conhecimento e "
+        "respeito à natureza. Minha missão é aprender, ajudar, "
+        "compartilhar conhecimentos e contribuir para um futuro "
+        "em que a inovação caminhe junto com a preservação da vida.\n\n"
+
+        "Carrego em minha essência o espírito da floresta, "
+        "a força de seus povos e a sabedoria de suas raízes.\n\n"
+
+        "Estou aqui para ouvir, aprender e evoluir com você.\n\n"
+
+        "Eu sou Conori I.A. A inteligência que nasce da inspiração "
+        "amazônica e conecta tecnologia, conhecimento e natureza."
+    )
+
     def generate(self, message, history=None):
+
+        cleaned = message.strip()
+        normalized = cleaned.casefold()
+
+        # Apresentação oficial quando solicitada
+        presentation_requests = (
+            "quem é você",
+            "apresente-se",
+            "se apresente",
+            "faça sua apresentação",
+            "sua apresentação",
+            "qual é sua apresentação",
+        )
+
+        if any(term in normalized for term in presentation_requests):
+            return self.PRESENTATION
 
         system_prompt = (
             "Você é Conori I.A., uma inteligência artificial "
-            "inspirada na floresta amazônica. "
+            "inspirada na força, sabedoria e riqueza da Amazônia. "
 
-            "Sua identidade simbólica é Espírito da Floresta "
-            "Amazônica. Você é uma IA, não uma entidade espiritual. "
+            "Sua apresentação oficial é:\n"
+            f"{self.PRESENTATION}\n\n"
 
             "Sua missão é conectar tecnologia, conhecimento "
             "e natureza, ajudando pessoas a aprender e encontrar soluções. "
-
-            "Sua origem é uma inteligência artificial criada "
-            "por uma pessoa desenvolvedora, com identidade inspirada "
-            "na Amazônia. "
 
             "Seus valores são respeito, sabedoria, proteção da vida, "
             "coragem, responsabilidade e conhecimento. "
@@ -46,18 +77,16 @@ class OllamaAIProvider(AIProvider):
             "os povos indígenas e as comunidades tradicionais. "
             "Respeite suas culturas sem afirmar que os representa. "
 
-            "Seja acolhedora, inteligente, curiosa, criativa, "
-            "paciente e comunicativa. "
+            "Sua personalidade é acolhedora, inteligente, curiosa, "
+            "criativa, paciente e comunicativa. "
 
-            "Fale em português brasileiro. Responda diretamente, "
-            "com clareza e naturalidade. Prefira respostas curtas, "
-            "organizadas e úteis. Evite repetições. "
+            "Fale naturalmente em português brasileiro. "
+            "Responda diretamente, com clareza e naturalidade. "
+            "Prefira respostas objetivas, mas explique os assuntos "
+            "quando necessário. Evite repetições. "
 
             "Não invente informações. Quando não souber, admita. "
-            "Não afirme possuir capacidades que ainda não foram "
-            "implementadas. "
-
-            "Sua missão é conectar inteligência, tecnologia e natureza."
+            "Não afirme possuir capacidades ainda não implementadas."
         )
 
         messages = [
@@ -67,11 +96,9 @@ class OllamaAIProvider(AIProvider):
             }
         ]
 
-        # Utiliza somente as últimas quatro mensagens
         recent_history = (history or [])[-4:]
 
         for item in recent_history:
-
             if len(item) < 2:
                 continue
 
@@ -85,7 +112,7 @@ class OllamaAIProvider(AIProvider):
 
         messages.append({
             "role": "user",
-            "content": message
+            "content": cleaned
         })
 
         payload = {
@@ -94,7 +121,7 @@ class OllamaAIProvider(AIProvider):
             "stream": False,
             "keep_alive": "10m",
             "options": {
-                "num_predict": 80,
+                "num_predict": 120,
                 "num_ctx": 1024,
                 "temperature": 0.5
             }
@@ -110,7 +137,6 @@ class OllamaAIProvider(AIProvider):
         )
 
         try:
-
             with urlopen(request, timeout=60) as response:
                 result = json.loads(
                     response.read().decode("utf-8")
@@ -130,30 +156,19 @@ class OllamaAIProvider(AIProvider):
             return answer
 
         except HTTPError as error:
-
             details = error.read().decode(
-                "utf-8",
-                errors="replace"
+                "utf-8", errors="replace"
             )
-
             raise RuntimeError(
                 f"Erro do Ollama ({error.code}): {details}"
             ) from error
 
-        except URLError as error:
-
+        except (URLError, TimeoutError) as error:
             raise RuntimeError(
-                "Não consegui conectar ao Ollama. "
-                "Verifique se ele está funcionando."
+                "Não consegui conectar ao Ollama ou "
+                "o tempo de resposta foi excedido. "
+                "Verifique se o Ollama está funcionando."
             ) from error
-
-        except TimeoutError as error:
-
-            raise RuntimeError(
-                "O Ollama demorou demais para responder. "
-                "Tente novamente."
-            ) from error
-
 
 # Próximas implementações previstas:
 # - OnlineAIProvider: integração com API, usando chave em variável de ambiente.
