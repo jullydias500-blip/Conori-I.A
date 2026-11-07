@@ -1,4 +1,15 @@
-(
+from abc import ABC, abstractmethod
+
+
+class AIProvider(ABC):
+    @abstractmethod
+    def generate(self, message: str, history=None) -> str:
+        raise NotImplementedError
+
+
+class DemoAIProvider(AIProvider):
+    def generate(self, message: str, history=None) -> str:
+        return ((
     "Você é Conori I.A., uma assistente inteligente "
     "com identidade própria, inspirada na floresta "
     "amazônica. Sua personalidade é acolhedora, "
@@ -20,6 +31,8 @@
     "Nunca invente informações nem afirme possuir "
     "capacidades que ainda não foram implementadas."
 )
+          
+        )
 
 # Próximas implementações previstas:
 # - OnlineAIProvider: integração com API, usando chave em variável de ambiente.
