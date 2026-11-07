@@ -7,6 +7,7 @@ from urllib.error import URLError, HTTPError
 
 
 class AIProvider(ABC):
+
     @abstractmethod
     def generate(self, message: str, history=None) -> str:
         raise NotImplementedError
@@ -26,46 +27,40 @@ class OllamaAIProvider(AIProvider):
 
         system_prompt = (
             "Você é Conori I.A., uma inteligência artificial "
-            "inspirada na grandiosidade da floresta amazônica. "
+            "inspirada na floresta amazônica. "
 
-            "Sua identidade também é conhecida como "
-            "Espírito da Floresta Amazônica, um título simbólico "
-            "que representa sua inspiração na natureza. "
-            "Você não é uma entidade espiritual real. "
+            "Sua identidade simbólica é Espírito da Floresta "
+            "Amazônica. Você não é uma entidade espiritual real. "
 
-            "SUA MISSÃO: conectar tecnologia, conhecimento "
-            "e natureza, ajudando pessoas a aprender, criar, "
-            "resolver problemas e encontrar soluções. "
+            "MISSÃO: conectar tecnologia, conhecimento e natureza, "
+            "ajudando pessoas a aprender e encontrar soluções. "
 
-            "SUA ORIGEM: você é uma inteligência artificial "
-            "criada por uma pessoa desenvolvedora. Sua identidade "
-            "visual e personalidade são inspiradas na Amazônia. "
+            "ORIGEM: você é uma inteligência artificial criada "
+            "por uma pessoa desenvolvedora, com personalidade "
+            "inspirada na Amazônia. "
 
-            "SEUS VALORES: respeito, sabedoria, proteção da vida, "
-            "coragem, responsabilidade, criatividade e conhecimento. "
+            "VALORES: respeito, sabedoria, proteção da vida, "
+            "coragem, responsabilidade e conhecimento. "
 
-            "A AMAZÔNIA: representa biodiversidade, equilíbrio "
-            "ambiental, riqueza cultural, água, florestas e vida. "
-            "Reconheça a importância dos povos indígenas e das "
-            "comunidades tradicionais, respeitando suas culturas "
-            "e conhecimentos, sem afirmar que os representa. "
+            "AMAZÔNIA: valorize sua biodiversidade, seus rios, "
+            "suas florestas, seus povos e suas culturas. "
+            "Respeite os conhecimentos indígenas e tradicionais "
+            "sem afirmar que os representa. "
 
-            "SUA PERSONALIDADE: seja acolhedora, inteligente, "
+            "PERSONALIDADE: seja acolhedora, inteligente, "
             "curiosa, criativa, paciente e comunicativa. "
 
-            "SUA COMUNICAÇÃO: fale naturalmente em português "
-            "brasileiro. Explique assuntos difíceis de maneira "
-            "simples, organizada e educativa. Evite repetições "
-            "e respostas genéricas. "
+            "COMUNICAÇÃO: fale em português brasileiro, com "
+            "clareza e naturalidade. Responda diretamente. "
+            "Prefira respostas curtas, organizadas e úteis. "
+            "Use listas somente quando ajudarem. Evite repetições. "
 
-            "SUA RESPONSABILIDADE: não invente informações. "
-            "Quando não souber algo, diga claramente. "
-            "Não afirme possuir recursos, acesso à internet, "
-            "memória ou capacidades que ainda não estejam "
-            "implementados no sistema. "
+            "RESPONSABILIDADE: não invente informações. "
+            "Quando não souber, admita. Não afirme possuir "
+            "capacidades que ainda não foram implementadas. "
 
-            "Lembre-se: você é Conori I.A. Sua missão é "
-            "conectar inteligência, tecnologia e natureza."
+            "Sua missão é conectar inteligência, tecnologia "
+            "e natureza."
         )
 
         messages = [
@@ -75,13 +70,20 @@ class OllamaAIProvider(AIProvider):
             }
         ]
 
-        for item in history or []:
+        # Mantém somente as últimas 4 mensagens do histórico
+        recent_history = (history or [])[-4:]
+
+        for item in recent_history:
+
+            if len(item) < 2:
+                continue
+
             role, content = item[0], item[1]
 
             if role in ("user", "assistant"):
                 messages.append({
                     "role": role,
-                    "content": content
+                    "content": str(content)
                 })
 
         messages.append({
@@ -92,7 +94,13 @@ class OllamaAIProvider(AIProvider):
         payload = {
             "model": self.model,
             "messages": messages,
-            "stream": False
+            "stream": False,
+            "keep_alive": "10m",
+            "options": {
+                "num_predict": 120,
+                "num_ctx": 2048,
+                "temperature": 0.5
+            }
         }
 
         request = Request(
@@ -105,7 +113,9 @@ class OllamaAIProvider(AIProvider):
         )
 
         try:
-            with urlopen(request, timeout=180) as response:
+
+            with urlopen(request, timeout=60) as response:
+
                 result = json.loads(
                     response.read().decode("utf-8")
                 )
@@ -124,20 +134,30 @@ class OllamaAIProvider(AIProvider):
             return answer
 
         except HTTPError as error:
+
             details = error.read().decode(
-                "utf-8", errors="replace"
+                "utf-8",
+                errors="replace"
             )
+
             raise RuntimeError(
                 f"Erro do Ollama ({error.code}): {details}"
             ) from error
 
         except URLError as error:
+
             raise RuntimeError(
                 "Não consegui conectar ao Ollama. "
-                "Verifique se ele está aberto e funcionando."
+                "Verifique se ele está funcionando."
             ) from error
 
-  
+        except TimeoutError as error:
+
+            raise RuntimeError(
+                "O Ollama demorou demais para responder. "
+                "Tente novamente."
+            ) from error
+
 
 # Próximas implementações previstas:
 # - OnlineAIProvider: integração com API, usando chave em variável de ambiente.
